@@ -1,84 +1,99 @@
-// Build the metadata panel
-function buildMetadata(sample) {
-  d3.json("https://static.bc-edx.com/data/dl-1-2/m14/lms/starter/samples.json").then((data) => {
+// Set up URL for data
+const url = "https://static.bc-edx.com/data/dl-1-2/m14/lms/starter/samples.json";
 
-    // get the metadata field
+// Fetch the data using D3
+d3.json(url).then((data) => {
+    const samples = data.samples;  // Extract samples data
+    const meta_data = data.metadata;  // Extract metadata
 
+    // Populate dropdown menu
+    const selector = d3.select("#selDataset");
+    data.names.forEach((id) => {
+        selector.append("option").text(id).property("value", id);  // Add each ID to dropdown
+    });
 
-    // Filter the metadata for the object with the desired sample number
+    // Initialize charts with the first sample
+    initializeCharts(samples[0], meta_data[0]);
 
+    // Event listener for dropdown menu
+    d3.selectAll("#selDataset").on("change", function() {
+        const selectedId = d3.select(this).property("value");  // Get the selected ID
+        const selectedSample = samples.find(sample => sample.id === selectedId);  // Find corresponding sample
+        const selectedMeta = meta_data.find(meta => meta.id == selectedId);  // Find corresponding metadata
+        updateCharts(selectedSample, selectedMeta);  // Update charts with new data
+    });
+});
 
-    // Use d3 to select the panel with id of `#sample-metadata`
-
-
-    // Use `.html("") to clear any existing metadata
-
-
-    // Inside a loop, you will need to use d3 to append new
-    // tags for each key-value in the filtered metadata.
-
-  });
+// Function to initialize charts
+function initializeCharts(sampleData, metaData) {
+    updateCharts(sampleData, metaData);  // Use update function to initialize charts and metadata
 }
 
-// function to build both charts
-function buildCharts(sample) {
-  d3.json("https://static.bc-edx.com/data/dl-1-2/m14/lms/starter/samples.json").then((data) => {
-
-    // Get the samples field
-
-
-    // Filter the samples for the object with the desired sample number
-
-
-    // Get the otu_ids, otu_labels, and sample_values
-
-
-    // Build a Bubble Chart
-
-
-    // Render the Bubble Chart
-
-
-    // For the Bar Chart, map the otu_ids to a list of strings for your yticks
-
-
-    // Build a Bar Chart
-    // Don't forget to slice and reverse the input data appropriately
-
-
-    // Render the Bar Chart
-
-  });
+// Function to update charts and metadata
+function updateCharts(sampleData, metaData) {
+    updateBarChart(sampleData);  // Update bar chart
+    updateBubbleChart(sampleData);  // Update bubble chart
+    updateMetadata(metaData);  // Update metadata display
 }
 
-// Function to run on page load
-function init() {
-  d3.json("https://static.bc-edx.com/data/dl-1-2/m14/lms/starter/samples.json").then((data) => {
+// Function to update bar chart
+function updateBarChart(sampleData) {
+    const top10SampleValues = sampleData.sample_values.slice(0, 10).reverse();  // Top 10 sample values
+    const top10SampleIds = sampleData.otu_ids.slice(0, 10).reverse().map(id => `OTU ${id}`);  // Top 10 OTU IDs
+    const top10SampleLabels = sampleData.otu_labels.slice(0, 10).reverse();  // Top 10 OTU labels
 
-    // Get the names field
+    const barTrace = {
+        x: top10SampleValues,  // Use sample_values as the values for the bar chart
+        y: top10SampleIds,  // Use otu_ids as the labels for the bar chart
+        text: top10SampleLabels,  // Use otu_labels as the hovertext for the chart
+        type: "bar",
+        orientation: "h",
+        marker: {
+            color: "blue"  // Bar color
+        }
+    };
 
+    const barLayout = {
+        title: `Top 10 OTUs`,
+        width: 450,
+        height: 600
+    };
 
-    // Use d3 to select the dropdown with id of `#selDataset`
-
-
-    // Use the list of sample names to populate the select options
-    // Hint: Inside a loop, you will need to use d3 to append a new
-    // option for each sample name.
-
-
-    // Get the first sample from the list
-
-
-    // Build charts and metadata panel with the first sample
-
-  });
+    Plotly.newPlot("bar", [barTrace], barLayout);  // Plot bar chart
 }
 
-// Function for event listener
-function optionChanged(newSample) {
-  // Build charts and metadata panel each time a new sample is selected
+// Function to update bubble chart
+function updateBubbleChart(sampleData) {
+    const bubbleColors = 'Earth'; // Earth color scale
 
+    const bubbleTrace = {
+        x: sampleData.otu_ids,  // Use otu_ids for the x values
+        y: sampleData.sample_values,  // Use sample_values for the y values
+        text: sampleData.otu_labels,  // Use otu_labels for the text values
+        mode: "markers",
+        marker: {
+            color: sampleData.otu_ids,  // Use otu_ids for the marker colors
+            colorscale: bubbleColors,   // Set colorscale to Earth
+            size: sampleData.sample_values  // Use sample_values for the marker size
+        }
+    };
+
+    const bubbleLayout = {
+        xaxis: { title: "OTU ID" },
+        yaxis: { title: "Sample Value" }
+    };
+
+    Plotly.newPlot('bubble', [bubbleTrace], bubbleLayout);  // Plot bubble chart
 }
 
-// Initialize the dashboard
-init();
+// Function to update metadata display
+function updateMetadata(metaData) {
+    const metadataSection = d3.select("#sample-metadata");
+    metadataSection.html("");  // Clear existing metadata
+    Object.entries(metaData).forEach(([key, value]) => {
+        metadataSection.append("p").text(`${key.toUpperCase()}: ${value}`);  // Add new metadata
+    });
+}
+
+
+
